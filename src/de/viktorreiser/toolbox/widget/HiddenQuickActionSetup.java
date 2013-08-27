@@ -1,5 +1,7 @@
 package de.viktorreiser.toolbox.widget;
 
+import java.util.HashMap;
+
 import android.content.Context;
 import android.graphics.Rect;
 import android.graphics.drawable.Drawable;
@@ -56,6 +58,23 @@ import de.viktorreiser.toolbox.widget.SwipeableHiddenView.HiddenViewSetup;
 public class HiddenQuickActionSetup extends HiddenViewSetup {
 	
 	// PRIVATE ====================================================================================
+
+    /**
+     * Value of the disabled alpha value for the images.
+     */
+	private static final int ALPHA_DISABLED = 50;
+
+    /**
+	 * @author abentan.codigodelsur
+	 */
+	private static final String TAG = HiddenQuickActionSetup.class.getName();
+	
+
+	/**
+	 * abentan: maps the actionIds to the actionInfos.
+	 */
+	private HashMap<Integer, ActionInfo> actionInfoMap = new HashMap<Integer, ActionInfo>();
+	
 	
 	/** Layout which contains the image action views. */
 	private UnpressableLinearLayout mLinearLayout;
@@ -338,15 +357,17 @@ public class HiddenQuickActionSetup extends HiddenViewSetup {
 	 *            action description shown when hovered (can be {@code 0} for no indicator)
 	 * @param drawableResId
 	 *            drawable for quick action
+	 *            
+	 * @param enabled Enabled the action or not.  
 	 * 
 	 * @return {@code false} if action ID already set
 	 */
-	public boolean addAction(int actionId, int actionDescriptionResId, int drawableResId, boolean disabled) {
+	public boolean addAction(int actionId, int actionDescriptionResId, int drawableResId, boolean enabled) {
 		return addAction(
 				actionId,
 				actionDescriptionResId == 0 ? null : mLinearLayout.getContext().getResources()
 						.getString(actionDescriptionResId),
-				mLinearLayout.getContext().getResources().getDrawable(drawableResId), disabled);
+				mLinearLayout.getContext().getResources().getDrawable(drawableResId), enabled);
 	}
 	
 	/**
@@ -358,15 +379,16 @@ public class HiddenQuickActionSetup extends HiddenViewSetup {
 	 *            action description shown when hovered (can be {@code 0} for no indicator)
 	 * @param drawable
 	 *            drawable for quick action
+	 * @param enabled Enable the action or not.  
 	 * 
 	 * @return {@code false} if action ID already set
 	 */
-	public boolean addAction(int actionId, int actionDescriptionResId, Drawable drawable, boolean disabled) {
+	public boolean addAction(int actionId, int actionDescriptionResId, Drawable drawable, boolean enabled) {
 		return addAction(
 				actionId,
 				actionDescriptionResId == 0 ? null : mLinearLayout.getContext().getResources()
 						.getString(actionDescriptionResId),
-				drawable, disabled);
+				drawable, enabled);
 	}
 	
 	/**
@@ -378,12 +400,14 @@ public class HiddenQuickActionSetup extends HiddenViewSetup {
 	 *            action description shown when hovered (can be {@code null} for no indicator)
 	 * @param drawableResId
 	 *            drawable for quick action
+	 *            
+	 * @param enabled Enable the action or not.  
 	 * 
 	 * @return {@code false} if action ID already set
 	 */
-	public boolean addAction(int actionId, String actionDescription, int drawableResId, boolean disabled) {
+	public boolean addAction(int actionId, String actionDescription, int drawableResId, boolean enabled) {
 		return addAction(actionId, actionDescription,
-				mLinearLayout.getContext().getResources().getDrawable(drawableResId), disabled);
+				mLinearLayout.getContext().getResources().getDrawable(drawableResId), enabled);
 	}
 	
 	/**
@@ -395,10 +419,13 @@ public class HiddenQuickActionSetup extends HiddenViewSetup {
 	 *            action description shown when hovered (can be {@code null} for no indicator)
 	 * @param drawable
 	 *            drawable for quick action
+	 *            
+	 * @param enabled Enable the action or not.  
 	 * 
 	 * @return {@code false} if action ID already set
 	 */
-	public boolean addAction(int actionId, String actionDescription, Drawable drawable, boolean audit) {
+	public boolean addAction(int actionId, String actionDescription, Drawable drawable, boolean enabled) {
+		
 		int count = mLinearLayout.getChildCount();
 		
 		for (int i = 0; i < count; i++) {
@@ -406,12 +433,13 @@ public class HiddenQuickActionSetup extends HiddenViewSetup {
 				return false;
 			}
 		}
-		
+
 		ImageView iv = new ImageView(mLinearLayout.getContext());
 		
-		if (!audit) {
-			iv.setAlpha(50);	
-		}
+        // added by abentan: this line should be commented
+//		if (!enabled) {
+//			iv.setAlpha(ALPHA_DISABLED);	
+//		}
 		
 		RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(
 				mImageWidth, mImageHeight);
@@ -422,7 +450,14 @@ public class HiddenQuickActionSetup extends HiddenViewSetup {
 		
 		ActionInfo info = new ActionInfo();
 		info.id = actionId;
-		info.description = actionDescription;
+        info.description = actionDescription;
+        //added by abentan
+        info.imageView = iv;
+        actionInfoMap.put(actionId, info);
+        //end added by abentan
+        // added by abentan: this line may be commented, and uncommented the setAlpha above
+        setActionEnabled(actionId, enabled);
+        
 		
 		RelativeLayout rl = new RelativeLayout(mLinearLayout.getContext());
 		LinearLayout.LayoutParams params2 = new LinearLayout.LayoutParams(
@@ -438,6 +473,26 @@ public class HiddenQuickActionSetup extends HiddenViewSetup {
 		return true;
 	}
 	
+    /**
+     * Enables or disables the action identified by actionId.
+     * @param actionId
+     * @param enabled
+     */
+    public void setActionEnabled(int actionId, boolean enabled)
+    {
+        actionInfoMap.get(actionId).setEnabled(enabled);
+    }
+    
+    /**
+     * 
+     * @param actionId
+     * @return true if the action is enabled, false otherwise.
+     */
+    public boolean isActionEnabled(int actionId)
+    {
+        return actionInfoMap.get(actionId).enabled;
+    }
+    
 	/**
 	 * Remove added action.
 	 * 
@@ -447,7 +502,11 @@ public class HiddenQuickActionSetup extends HiddenViewSetup {
 	 * 
 	 * @return {@code true} if action successfully removed from setup
 	 */
-	public boolean removeAction(int actionId) {
+	public boolean removeAction(int actionId) 
+	{
+	    // added by abentan
+	    actionInfoMap.remove(actionId);
+	    
 		int count = mLinearLayout.getChildCount();
 		
 		for (int i = 0; i < count; i++) {
@@ -510,7 +569,15 @@ public class HiddenQuickActionSetup extends HiddenViewSetup {
 	private void setupQuickActionTouchListener() {
 		mTouchListener = new OnTouchListener() {
 			@Override
-			public boolean onTouch(View v, MotionEvent event) {
+			public boolean onTouch(View v, MotionEvent event) 
+			{
+			    //abentan: this should be used instead of the modified if below
+			    // , but it changes the behavior against the others implemented actions, all those actions should be reimplemented
+                if (!actionInfoMap.get(((ActionInfo) v.getTag()).id).enabled) 
+                {
+                    return true;
+                }
+			    
 				int a = event.getAction();
 				
 				if (a == MotionEvent.ACTION_DOWN) {
@@ -541,12 +608,16 @@ public class HiddenQuickActionSetup extends HiddenViewSetup {
 							closeHiddenView();
 						}
 						
-						if (mQuickActionListener != null) {
-							mQuickActionListener.onQuickAction(
-									getCurrentListView(),
-									getCurrentSwipeableHiddenView(),
-									getCurrentPosition(),
-									((ActionInfo) v.getTag()).id);
+                        // modified by abentan, if the action is enabled and ..
+//                        if (mQuickActionListener != null) {
+                        if (mQuickActionListener != null
+                                && actionInfoMap.get(((ActionInfo) v.getTag()).id).enabled) 
+                        {
+                            mQuickActionListener.onQuickAction(
+                                    getCurrentListView(),
+                                    getCurrentSwipeableHiddenView(),
+                                    getCurrentPosition(),
+                                    ((ActionInfo) v.getTag()).id);
 						}
 					}
 					
@@ -609,7 +680,28 @@ public class HiddenQuickActionSetup extends HiddenViewSetup {
 	}
 	
 	private class ActionInfo {
-		int id;
-		String description;
+	    protected int id;
+        protected boolean enabled = true;
+        protected String description;
+		protected ImageView imageView;
+		
+	    /**
+	     * Enables or disables the action.
+	     * @param enabled
+	     */
+	    public void setEnabled(boolean enabled)
+	    {
+	        this.enabled = enabled;
+	        
+	        int alpha = enabled ? 255 : ALPHA_DISABLED;
+	        
+	        this.imageView.setAlpha(alpha);
+	    }
+	    
+	    public boolean isEnabled()
+	    {
+	        return enabled;
+	    }
+		
 	}
 }

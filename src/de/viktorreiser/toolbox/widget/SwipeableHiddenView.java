@@ -75,7 +75,8 @@ import de.viktorreiser.toolbox.widget.SwipeableHiddenView.HiddenViewSetup.SwipeD
  * @author Viktor Reiser &lt;<a href="mailto:viktorreiser@gmx.de">viktorreiser@gmx.de</a>&gt;
  */
 public class SwipeableHiddenView extends FrameLayout implements SwipeableListItem {
-	
+    
+    
 	// PRIVATE ====================================================================================
 	
 	/** Setup for swipeable view. */
@@ -146,7 +147,7 @@ public class SwipeableHiddenView extends FrameLayout implements SwipeableListIte
 	private boolean mStartedTwice = false;
 	
 	private View [] mCurrentChildren = new View [] {null, null};
-	
+
 	private static Field mChildren;
 	private static Field mChildrenCount;
 	
@@ -188,7 +189,17 @@ public class SwipeableHiddenView extends FrameLayout implements SwipeableListIte
 	public static abstract class HiddenViewSetup extends SwipeableSetup {
 		
 		// PRIVATE --------------------------------------------------------------------------------
-		
+	    
+        /**
+         * Added by abentan, called at the beginning of the effect 
+         */
+        private ViewSwipeListener onPreSwipeListener = null;
+        
+        /**
+         * Added by abentan, called at the end of the effect
+         */
+        private ViewSwipeListener onPostSwipeListener = null;
+        
 		/** Set by {@link SwipeableHiddenView} when it binds {@link #getHiddenView()}. */
 		private SwipeableHiddenView currentSwipeableHiddenView;
 		
@@ -218,6 +229,24 @@ public class SwipeableHiddenView extends FrameLayout implements SwipeableListIte
 		public enum SwipeDirection {
 			BOTH, LEFT, RIGHT
 		}
+
+		/**
+		 * 
+		 * @return
+		 */
+	    public ViewSwipeListener getOnPreSwipeListener()
+	    {
+	        return onPreSwipeListener;
+	    }
+
+	    /**
+	     * Adds a listener at the beginning of the swipe affect. It is called only at that time.
+	     * @param onPreSwipeListener
+	     */
+	    public void setOnPreSwipeListener(ViewSwipeListener onPreSwipeListener)
+	    {
+	        this.onPreSwipeListener = onPreSwipeListener;
+	    }
 		
 		/**
 		 * Get current {@link SwipeableHiddenView} which is operating on the hidden view.
@@ -508,11 +537,30 @@ public class SwipeableHiddenView extends FrameLayout implements SwipeableListIte
 		 * new view (reference) so it has to be updated in the swipeable view.
 		 */
 		protected final void updateHiddenView() {
+		    
 			if (currentSwipeableHiddenView != null) {
 				currentSwipeableHiddenView.mHiddenView = null;
 				currentSwipeableHiddenView.bindHiddenView();
 			}
 		}
+
+		/**
+		 * 
+		 * @return
+		 */
+        public ViewSwipeListener getOnPostSwipeListener()
+        {
+            return onPostSwipeListener;
+        }
+
+        /**
+         * Adds a listener at the end of the swipe affect. It is called only at that time.
+         * @param onPostSwipeListener
+         */
+        public void setOnPostSwipeListener(ViewSwipeListener onPostSwipeListener)
+        {
+            this.onPostSwipeListener = onPostSwipeListener;
+        }
 	}
 	
 	
@@ -616,8 +664,19 @@ public class SwipeableHiddenView extends FrameLayout implements SwipeableListIte
 	@Override
 	public boolean onViewSwipe(ListView listView, SwipeEvent event, int offset, int position,
 			SwipeableListItem restoreItem) {
-		checkRequirements();
-		
+	    
+        checkRequirements();
+        
+        // added by abentan
+        if (mData.getOnPreSwipeListener() != null && event == SwipeEvent.START) {
+            mData.getOnPreSwipeListener().onViewSwipe(listView, event, offset, position, restoreItem);
+        }
+        
+        // added by abentan
+        if (mData.getOnPostSwipeListener() != null && event == SwipeEvent.STOP) {
+            mData.getOnPostSwipeListener().onViewSwipe(listView, event, offset, position, restoreItem);
+        }
+        
 		boolean mayInterruptAnimation = mAnimating && Math.abs(mOffset) < mData.interruptOffset
 				|| mAnimating && !mAnimateForward;
 		
@@ -1233,6 +1292,7 @@ public class SwipeableHiddenView extends FrameLayout implements SwipeableListIte
 	 * Check perform requirements ({@link HiddenViewSetup} and a external child).
 	 */
 	private void checkRequirements() {
+	    
 		if (isInEditMode()) {
 			return;
 		}
@@ -1321,4 +1381,5 @@ public class SwipeableHiddenView extends FrameLayout implements SwipeableListIte
 			mOffset = -mOffset;
 		}
 	}
+
 }
